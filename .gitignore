@@ -1,0 +1,9 @@
+# Exclude local (per site) programs and data
+
+/local/*
+!/local/README.txt
+
+# Exclude temporary and compiler generated files
+
+*~
+*.sw?
