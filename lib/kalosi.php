@@ -27,13 +27,17 @@ abstract class kalosi {
 	// configuration file της μορφής:
 	//
 	//	kalosi::$conf = [
-	//		"basedir" => "/var/opt/sinergio",
+	//		"kalosidir" => "/var/opt/kalosi",
+	//		"kalosiwww" => "http://localhost/kalosi",
+	//		"appdir" => "/var/opt/sinergio",
+	//		"wwwdir" => "/var/opt/sinergio/www",
+	//		"www" => "http://localhost/sinergio",
 	//		...
 	//	];
 	//
 	// Το configuration file απλώς ορίζει την static property "conf" να
 	// είναι ένα assosiative array, στο οποίο θα πρέπει οπωσδήποτε να
-	// υπάρχει στοιχείο "basedir" που δείχνει το directory βάσης τής
+	// υπάρχει στοιχείο "appdir" που δείχνει το directory βάσης τής
 	// εφαρμογής μας. Στο παραπάνω παράδειγμα το directory βάσης τής
 	// εφαρμογής μας είναι το "/var/opt/sinergio". Στο directory βάσης
 	// της εφαρμογής μας συνήθως υπάρχει subdirectory κάτω από το οποίο
@@ -120,15 +124,23 @@ abstract class kalosi {
 		if (!isset(self::$conf))
 		self::fatal("init: configuration syntax error");
 
+		if (self::no_conf("kalosidir"))
+		self::fatal("init: missing 'kalosidir' parameter");
+
 		if (self::no_conf("kalosiwww"))
 		self::fatal("init: missing 'kalosiwww' parameter");
 
-		if (self::no_conf("basedir"))
-		self::fatal("init: missing 'basedir' parameter");
+		if (self::no_conf("appdir"))
+		self::fatal("init: missing 'appdir' parameter");
+
+		if (self::no_conf("wwwdir"))
+		self::fatal("init: missing 'wwwdir' parameter");
 
 		self::
+		fixconfdir("kalosidir")::
 		fixconfdir("kalosiwww")::
-		fixconfdir("basedir")::
+		fixconfdir("appdir")::
+		fixconfdir("wwwdir")::
 		fixconfdir("www");
 
 		register_shutdown_function("kalosi::atexit");
@@ -283,9 +295,36 @@ abstract class kalosi {
 		if ((!isset(self::$favicon)) && self::is_conf("favicon"))
 		self::favicon(self::$conf["favicon"]);
 
-		self::
-		css(self::kalosiwww("kalosi.css"))::
-		script(self::kalosiwww("kalosi.js"));
+		// Αν υπάρχει PHP πρόγραμμα με όνομα "kalosi.php" στο
+		// directory "lib" κάτω από το directory βάσης της εφαρμογής,
+		// τότε το συμπεριλαμβάνουμε σ' αυτό το σημείο. Ωστόσο
+		// φροντίζουμε να μην κάνουμε αυτήν την ενέργεια στην ίδια
+		// την εφαρμογή "kalosi".
+
+		if (self::$conf["appdir"] !== self::$conf["kalosidir"]) {
+			$file = self::appdir("lib/kalosi.php");
+
+			if (is_readable($file))
+			require($file);
+		}
+
+		// Αν υπάρχει PHP πρόγραμμα με όνομα "kalosi.php" στο τρέχον
+		// directory, τότε το συμπεριλαμβάνουμε σ' αυτό το σημείο.
+
+		$file = "kalosi.php";
+
+		if (is_readable($file))
+		require($file);
+
+		$file = self::wwwdir("lib/kalosi.css");
+
+		if (is_readable($file))
+		self::css(self::www("lib/kalosi.css"));
+
+		$file = self::wwwdir("lib/kalosi.js");
+
+		if (is_readable($file))
+		script(self::www("lib/kalosi"));
 
 		self::
 		check_for_default_css()::
@@ -522,6 +561,32 @@ abstract class kalosi {
 
 	static public function jsonstr($s) {
 		return self::$db->json_encode($s);
+	}
+
+///////////////////////////////////////////////////////////////////////////////@
+
+	// Η function "appdir" δέχεται ως παράμετρο ένα pathname και επιστρέφει
+	// το πλήρες pathname με βάση την παράμετρο "appdir" του configuration.
+
+	static public function appdir($s) {
+		$t = self::$conf["appdir"];
+
+		if (substr($s, 0, 1) !== "/")
+		$t .= "/";
+
+		return ($t .= $s);
+	}
+
+	// Η function "wwwdir" δέχεται ως παράμετρο ένα pathname και επιστρέφει
+	// το πλήρες pathname με βάση την παράμετρο "wwwdir" του configuration.
+
+	static public function wwwdir($s) {
+		$t = self::$conf["wwwdir"];
+
+		if (substr($s, 0, 1) !== "/")
+		$t .= "/";
+
+		return ($t .= $s);
 	}
 
 	// Η function "www" δέχεται ως παράμετρο ένα pathname και επιστρέφει
