@@ -22,7 +22,7 @@
 // είναι το singleton "kalosi" το οποίο περιλαμβάνει ως static μεθόδους όλες
 // τις functions της βιβλιοθήκης.
 
-class kalosi {
+abstract class kalosi {
 	// Για τη λειτουργία της βιβλιοθήκης, είναι απαραίτητο να υπάρχει
 	// configuration file της μορφής:
 	//
@@ -229,7 +229,7 @@ class kalosi {
 	}
 
 	static public function fetch_row($result, $mode = MYSQLI_ASSOC) {
-		$row = $result->fetch_array($mode);
+		$row = $result->fetch_object();
 
 		switch ($row) {
 		case null:
@@ -516,6 +516,14 @@ class kalosi {
 
 ///////////////////////////////////////////////////////////////////////////////@
 
+	static public function sqlstr($s) {
+		return "'" . self::$db->real_escape_string($s) . "'";
+	}
+
+	static public function jsonstr($s) {
+		return self::$db->json_encode($s);
+	}
+
 	// Η function "www" δέχεται ως παράμετρο ένα pathname και επιστρέφει
 	// το πλήρες url με βάση την παράμετρο "www" του configuration.
 
@@ -533,6 +541,35 @@ class kalosi {
 
 	static public function fatal($msg) {
 		exit("kalosi::" . $msg);
+	}
+}
+
+class kalosiXristis {
+	public $login;
+	public $onoma;
+	public $egrafi;
+	public $kodikos;
+	public $anenergos;
+	public $info;
+
+	public function __construct($data) {
+		foreach ($data as $key => $val)
+		$this->$key = $val;
+	}
+
+	public function validate() {
+		$query = "SELECT 1 FROM `kalosi`.`xristis` " .
+			"WHERE (`login` LIKE " . kalosi::sqlstr($this->login) . ") " .
+			"AND (`kodikos` = SHA1(" . kalosi::sqlstr($this->kodikos) . "))";
+		$result = kalosi::query($query);
+
+		$row = kalosi::fetch_row($result);
+
+		if (!$row)
+		return false;
+
+		$result->close();
+		return true;
 	}
 }
 
