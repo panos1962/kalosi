@@ -9,14 +9,20 @@
 //
 //	require("/var/opt/kalosi/lib/kalosi.php");
 //	...
+//
+// Αν δεν επιθυμούμε να εντάξουμε τη βιβιλιοθήκη με το πλήρες pathname, τότε
+// μπορούμε να δημιουργήσουμε στην εφαρμογή μας subdirectory στο οποίο να
+// έχουμε συντόμευση που να δείχνει στο πλήρες pathname της βιβλιοθήκης και
+// να εντάσσουμε τη βιβλιοθήκη με εντολή require χρησιμοποιώντας σχετικό
+// pathname, π.χ.:
+//
+//	require("../../mnt/kalosi/lib/kalosi.php");
 
-// Το μόνο global αντικείμενο που είναι απαραίτητο για τη βιβλικοθήκη "kalosi"
+// Το μόνο global αντικείμενο που είναι απαραίτητο για τη βιβλιοθήκη "kalosi"
 // είναι το singleton "kalosi" το οποίο περιλαμβάνει ως static μεθόδους όλες
 // τις functions της βιβλιοθήκης.
 
 class kalosi {
-///////////////////////////////////////////////////////////////////////////////@
-
 	// Για τη λειτουργία της βιβλιοθήκης, είναι απαραίτητο να υπάρχει
 	// configuration file της μορφής:
 	//
@@ -89,13 +95,16 @@ class kalosi {
 	//
 	//	require("../../lib/sinergio.php");
 	//	...
+	//
+	// ενώ το "index.php" στη βασική σελίδα τής εφαρμογής θα εκκινεί
+	// κάπως έτσι:
+	//
+	//	require("../lib/sinergio.php");
+	//	...
 
 	static public function init($cfile = NULL) {
 		if (isset(self::$conf))
 		self::fatal("init: already called");
-
-		if (isset(self::$file))
-		return __CLASS__;
 
 		if (!isset($cfile))
 		self::fatal("init: missing configuration file");
@@ -108,16 +117,50 @@ class kalosi {
 		if (!isset(self::$conf))
 		self::fatal("init: invalid configuration file");
 
-		self::$conf = json_decode(json_encode(self::$conf));
-
 		if (!isset(self::$conf))
 		self::fatal("init: configuration syntax error");
 
-		if (!isset(self::$conf->basedir))
-		self::fatal("init: missing basedir");
+		if (self::no_conf("kalosiwww"))
+		self::fatal("init: missing 'kalosiwww' parameter");
+
+		if (self::no_conf("basedir"))
+		self::fatal("init: missing 'basedir' parameter");
+
+		self::
+		fixconfdir("kalosiwww")::
+		fixconfdir("basedir")::
+		fixconfdir("www");
 
 		register_shutdown_function("kalosi::atexit");
 		return __CLASS__;
+	}
+
+	static private function fixconfdir($idx) {
+		if (array_key_exists($idx, self::$conf))
+		self::$conf[$idx] = preg_replace("@/+$@", "", self::$conf[$idx]);
+
+		return __CLASS__;
+	}
+
+	static public function is_conf($idx) {
+		return array_key_exists($idx, self::$conf);
+	}
+
+	static public function no_conf($idx) {
+		return !self::is_conf($idx);
+	}
+
+	// Η function "kalosiwww" δέχεται ως παράμετρο ένα pathname και
+	// επιστρέφει το πλήρες url με βάση την παράμετρο "kalosiwww" του
+	// configuration.
+
+	static public function kalosiwww($s) {
+		$t = self::$conf["kalosiwww"];
+
+		if (substr($s, 0, 1) !== "/")
+		$t .= "/";
+
+		return ($t .= $s);
 	}
 
 	// Η function "atexit" θα κληθεί στο τέλος όλων των PHP προγραμμάτων
@@ -142,33 +185,33 @@ class kalosi {
 		if (!isset(self::$conf))
 		self::fatal("database: must call init function first");
 
-		if (!isset(self::$conf->dbhost))
-		self::$conf->dbhost = "localhost";
+		if (self::no_conf("dbhost"))
+		self::$conf["dbhost"] = "localhost";
 
-		if (!isset(self::$conf->dbuser))
+		if (self::no_conf("dbuser"))
 		self::fatal("database: dbuser not set");
 
-		if (!isset(self::$conf->dbpass))
+		if (self::no_conf("dbpass"))
 		self::fatal("database: dbpass not set");
 
-		if (!isset(self::$conf->dbname))
-		self::$conf->dbname = "";
+		if (self::no_conf("dbname"))
+		self::$conf["dbname"] = "";
 
 		self::$db = new mysqli(
-			self::$conf->dbhost,
-			self::$conf->dbuser,
-			self::$conf->dbpass,
-			self::$conf->dbname
+			self::$conf["dbhost"],
+			self::$conf["dbuser"],
+			self::$conf["dbpass"],
+			self::$conf["dbname"]
 		);
 
 		if (self::$db->connect_errno)
 		self::fatal("database: connect failed");
 
-		if (!isset(self::$conf->charset))
-		self::$conf->charset = "utf8mb4";
+		if (self::no_conf("charset"))
+		self::$conf["charset"] = "utf8mb4";
 
-		if (!self::$db->set_charset(self::$conf->charset))
-		self::fatal("database: " . self::$conf->charset . ": invalid charset");
+		if (!self::$db->set_charset(self::$conf["charset"]))
+		self::fatal("database: " . self::$conf["charset"] . ": invalid charset");
 
 		return __CLASS__;
 	}
@@ -219,22 +262,31 @@ class kalosi {
 ///////////////////////////////////////////////////////////////////////////////@
 
 	static public $selida_state = NULL;
+	static private $title = NULL;
+	static private $favicon = NULL;
 
-	static public function head_section($title = NULL) {
+	static public function head_section() {
 ?>
 <!DOCTYPE html>
 <html>
 <head>
 <?php
 
-		if (isset($title))
-		self::title($title);
-
 		self::$selida_state = 'head';
 		return __CLASS__;
 	}
 
 	static public function head_close() {
+		if ((!isset(self::$title)) && self::is_conf("title"))
+		self::title(self::$conf["title"]);
+
+		if ((!isset(self::$favicon)) && self::is_conf("favicon"))
+		self::favicon(self::$conf["favicon"]);
+
+		self::
+		css(self::kalosiwww("kalosi.css"))::
+		script(self::kalosiwww("kalosi.js"));
+
 		self::
 		check_for_default_css()::
 		check_for_default_script();
@@ -298,7 +350,14 @@ class kalosi {
 
 ///////////////////////////////////////////////////////////////////////////////@
 
-	static public function favicon($ikona) {
+	static public function favicon($ikona = NULL) {
+		if (!isset($ikona)) {
+			self::$favicon = true;
+			return __CLASS__;
+		}
+
+		self::$favicon = $ikona;
+
 		$tipos = strtolower(preg_replace("/.*\./", "", $ikona));
 
 		switch ($tipos) {
@@ -321,7 +380,13 @@ class kalosi {
 		return __CLASS__;
 	}
 
-	static public function title($title) {
+	static public function title($title = NULL) {
+		if (!isset($title)) {
+			self::$title = true;
+			return __CLASS__;
+		}
+
+		self::$title = true;
 ?>
 <title><?php print $title; ?></title>
 <?php
@@ -433,9 +498,44 @@ class kalosi {
 
 ///////////////////////////////////////////////////////////////////////////////@
 
+	static public function is_session($idx) {
+		return array_key_exists($idx, $_SESSION);
+	}
+
+	static public function is_get($idx) {
+		return array_key_exists($idx, $_GET);
+	}
+
+	static public function is_post($idx) {
+		return array_key_exists($idx, $_POST);
+	}
+
+	static public function is_request($idx) {
+		return array_key_exists($idx, $_REQUEST);
+	}
+
+///////////////////////////////////////////////////////////////////////////////@
+
+	// Η function "www" δέχεται ως παράμετρο ένα pathname και επιστρέφει
+	// το πλήρες url με βάση την παράμετρο "www" του configuration.
+
+	static public function www($s) {
+		if (self::no_conf("www"))
+		self::fatal("www: missing configuration value");
+
+		$t = self::$conf["www"];
+
+		if (substr($s, 0, 1) !== "/")
+		$t .= "/";
+
+		return ($t .= $s);
+	}
+
 	static public function fatal($msg) {
 		exit("kalosi::" . $msg);
 	}
 }
+
+session_start();
 
 ?>
