@@ -347,10 +347,20 @@ abstract class kalosi {
 		if (is_readable($file))
 		require($file);
 
+		// Αν στο www της εφαρμογής υπάρχει directory "lib" και file
+		// "kalosi.css" σ' αυτό το directory, τότε το φορτώνουμε ως
+		// default stylesheet που αφορά όλες τις σελίδες τις εφαρμογής.
+		// Εκεί μπορούμε να καθορίσουμε default font family, font size
+		// κλπ.
+
 		$file = self::wwwdir("lib/kalosi.css");
 
 		if (is_readable($file))
 		self::css(self::www("lib/kalosi.css"));
+
+		// Αν στο www της εφαρμογής υπάρχει directory "lib" και file
+		// "kalosi.js" σ' αυτό το directory, τότε το φορτώνουμε ως
+		// default script που αφορά όλες τις σελίδες τις εφαρμογής.
 
 		$file = self::wwwdir("lib/kalosi.js");
 
