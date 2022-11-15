@@ -141,7 +141,38 @@ abstract class kalosi {
 		fixconfdir("wwwdir")::
 		fixconfdir("www");
 
+		// By default χρησιμοποιούμε session σε όλες τα PHP προγράμματα
+		// της εφαρμογής. Αν δεν επιθυμούμε να χρησιμοποιούμε session
+		// by default, τότε πρέπει να θέσουμε την configuration
+		// parameter "session" σε false· σ' αυτήν την περίπτωση
+		// μπορούμε να χρησιμοποιούμε session σε επιλεγμένα PHP
+		// προγράμματα εκκινώντας με "kalosi::session_start()" αμέσως
+		// μετά την συμπερίληψη της βιβλιοθήκης "kalosi".
+
+		if (!array_key_exists("session", self::$conf))
+		self::$conf["session"] = true;
+
+		if (self::$conf["session"])
+		self::session_start();
+
 		register_shutdown_function("kalosi::atexit");
+		return __CLASS__;
+	}
+
+	static $session = false;
+
+	static public function session_start() {
+		if (self::$session)
+		return __CLASS__;
+
+		self::$session = true;
+
+		if (!session_start())
+		kalosi::fatal("session_start: failed");
+
+		if (!setcookie(session_name(), session_id(), time() + (3600 * 24 * 7), "/"))
+		kalosi::fatal("setcookie: failed");
+
 		return __CLASS__;
 	}
 
@@ -579,19 +610,59 @@ abstract class kalosi {
 ///////////////////////////////////////////////////////////////////////////////@
 
 	static public function is_session($idx) {
+		if (!isset($_SESSION))
+		return false;
+
+		if (!is_array($_SESSION))
+		return false;
+
 		return array_key_exists($idx, $_SESSION);
 	}
 
+	static public function no_session($idx) {
+		return !self::is_session($idx);
+	}
+
 	static public function is_get($idx) {
+		if (!isset($_GET))
+		return false;
+
+		if (!is_array($_GET))
+		return false;
+
 		return array_key_exists($idx, $_GET);
 	}
 
+	static public function no_get($idx) {
+		return !self::is_get($idx);
+	}
+
 	static public function is_post($idx) {
+		if (!isset($_POST))
+		return false;
+
+		if (!is_array($_POST))
+		return false;
+
 		return array_key_exists($idx, $_POST);
 	}
 
+	static public function no_post($idx) {
+		return !self::is_post($idx);
+	}
+
 	static public function is_request($idx) {
+		if (!isset($_REQUEST))
+		return false;
+
+		if (!is_array($_REQUEST))
+		return false;
+
 		return array_key_exists($idx, $_REQUEST);
+	}
+
+	static public function no_request($idx) {
+		return !self::is_request($idx);
 	}
 
 ///////////////////////////////////////////////////////////////////////////////@
@@ -678,8 +749,5 @@ class kalosiXristis {
 		return true;
 	}
 }
-
-session_start();
-setcookie(session_name(), session_id(), time() + (3600 * 24 * 10), "/");
 
 ?>
