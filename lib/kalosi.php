@@ -124,17 +124,15 @@ abstract class kalosi {
 		if (!isset(self::$conf))
 		self::fatal("init: configuration syntax error");
 
-		if (self::no_conf("kalosidir"))
-		self::fatal("init: missing 'kalosidir' parameter");
-
-		if (self::no_conf("kalosiwww"))
-		self::fatal("init: missing 'kalosiwww' parameter");
-
-		if (self::no_conf("appdir"))
-		self::fatal("init: missing 'appdir' parameter");
-
-		if (self::no_conf("wwwdir"))
-		self::fatal("init: missing 'wwwdir' parameter");
+		foreach ([
+			"kalosidir",
+			"kalosiwww",
+			"appdir",
+			"wwwdir",
+		] as $param) {
+			if (self::no_conf($param))
+			self::fatal("init: missing '" . $param . "' parameter");
+		}
 
 		self::
 		fixconfdir("kalosidir")::
@@ -256,19 +254,52 @@ abstract class kalosi {
 
 ///////////////////////////////////////////////////////////////////////////////@
 
-	static public function header_html() {
-		header('Content-Type: text/html; charset=utf-8');
-		return __CLASS__;
-	}
+	static public $content_type = NULL;
 
-	static public function header_json() {
-		header('Content-Type: application/json; charset=utf-8');
+	static private function content_type_set($tipos) {
+		if (self::$content_type)
+		self::fatal("content: redefined");
+
+		switch ($tipos) {
+		case "text/plain":
+		case "text/html":
+		case "application/json":
+			break;
+		default:
+			self::fatal("content: " . $tipos . ": invalid content type");
+		}
+
+		self::$content_type = $tipos;
+
+		header("Content-Type: " . $tipos . "; charset=utf-8");
 		return __CLASS__;
 	}
 
 	static public function header_text() {
-		header('Content-Type: text/plain; charset=utf-8');
+		return self::content_type_set("text/plain");
 		return __CLASS__;
+	}
+
+	static public function is_content_text() {
+		return self::$content_type === "text/plain";
+	}
+
+	static public function header_html() {
+		return self::content_type_set("text/html");
+		return __CLASS__;
+	}
+
+	static public function is_content_html() {
+		return self::$content_type === "text/html";
+	}
+
+	static public function header_json() {
+		return self::content_type_set("application/json");
+		return __CLASS__;
+	}
+
+	static public function is_content_json() {
+		return self::$content_type === "application/json";
 	}
 
 ///////////////////////////////////////////////////////////////////////////////@
@@ -639,5 +670,6 @@ class kalosiXristis {
 }
 
 session_start();
+setcookie(session_name(), session_id(), time() + (3600 * 24 * 10), "/");
 
 ?>
