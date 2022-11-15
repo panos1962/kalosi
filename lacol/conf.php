@@ -3,9 +3,11 @@
 // Το παρόν αρχείο μπορεί να χρησιμοποιηθεί ως πρότυπο configuration file για
 // τη βιβλιοθήκη "kalosi".
 
-
 kalosi::$conf = [
-	"basedir" => "/var/opt/sinergio",
+	"kalosidir" => "/var/opt/kalosi",
+	"kalosiwww" => "http://localhost/kalosi",
+	"appdir" => "/var/opt/sinergio",
+	"wwwdir" => "/var/opt/sinergio/www",
 	"www" => "http://localhost/sinergio",
 	"title" => "Συνεργείο",
 

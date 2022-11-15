@@ -735,7 +735,7 @@ class kalosiXristis {
 	}
 
 	public function validate() {
-		$query = "SELECT 1 FROM `kalosi`.`xristis` " .
+		$query = "SELECT * FROM `kalosi`.`xristis` " .
 			"WHERE (`login` LIKE " . kalosi::sqlstr($this->login) . ") " .
 			"AND (`kodikos` = SHA1(" . kalosi::sqlstr($this->kodikos) . "))";
 		$result = kalosi::query($query);
@@ -743,10 +743,10 @@ class kalosiXristis {
 		$row = kalosi::fetch_row($result);
 
 		if (!$row)
-		return false;
+		return (new kalosiXristis());
 
 		$result->close();
-		return true;
+		return $row;
 	}
 }
 
