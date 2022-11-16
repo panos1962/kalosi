@@ -1,14 +1,22 @@
 #!/usr/bin/env make -f
 
+JSMINIFIER = yui-compressor
+
 .SILENT:
 
 .PHONY: all
 all:
-	echo "Nothing to be done!"
+	make min
 
 test:
 	make all
 	bash local/test.sh
+
+%.min.js: %.js
+	$(JSMINIFIER) $< >$@
+
+.PHONY: min
+min: www/kalosi.min.js
 
 # GIT SECTION
 

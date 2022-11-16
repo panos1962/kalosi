@@ -519,8 +519,12 @@ abstract class kalosi {
 		return __CLASS__;
 	}
 
+	// Η function "check_for_default_css" ελέγχει αν υπάρχει CSS file
+	// με όνομα "kalosi.css" στο directory της σελίδας από την οποία
+	// καλείται και αν ναι, τότε το φορτώνει.
+
 	static private function check_for_default_css() {
-		$css = "main.css";
+		$css = "kalosi.css";
 
 		if (!file_exists($css))
 		return __CLASS__;
@@ -528,12 +532,16 @@ abstract class kalosi {
 		if (!is_readable($css))
 		self::fatal($css . ": cannot read");
 
-		self::css("main");
+		self::css("kalosi");
 		return __CLASS__;
 	}
 
+	// Η function "check_for_default_script" ελέγχει αν υπάρχει script
+	// file με όνομα "kalosi.js" στο directory της σελίδας από την οποία
+	// καλείται και αν ναι, τότε το φορτώνει.
+
 	static private function check_for_default_script() {
-		$script = "main.js";
+		$script = "kalosi.js";
 
 		if (!file_exists($script))
 		return __CLASS__;
@@ -541,9 +549,15 @@ abstract class kalosi {
 		if (!is_readable($script))
 		self::fatal($script . ": cannot read");
 
-		self::script("main");
+		self::script("kalosi");
 		return __CLASS__;
 	}
+
+	// Η function "css" δέχεται ως παράμετρο το όνομα ενός CSS file
+	// (stylesheet) στο directory της σελίδας από την οποία καλείται
+	// και το φορτώνει στην εν λόγω σελίδα. Αν αντί για όνομα αρχείου
+	// περάσουμε κάποιο url, τότε φορτώνεται το CSS file που δείχνει
+	// το συγκεκριμένο url.
 
 	static public function css($css) {
 		if (!preg_match("@\.css$@", $css))
@@ -566,6 +580,16 @@ abstract class kalosi {
 <?php
 		return __CLASS__;
 	}
+
+	// Η function "script" δέχεται ως παράμετρο το όνομα ενός javascript
+	// file στο directory της σελίδας από την οποία καλείται και το
+	// φορτώνει στην εν λόγω σελίδα. Αν αντί για όνομα αρχείου περάσουμε
+	// κάποιο url, τότε φορτώνεται το javascript file που δείχνει το
+	// συγκεκριμένο url.
+	// Όταν η παράμετρος αφορά τοπικό javascript file, τότε ελέγχεται
+	// αν υπάρχει αντίστοιχο minified file (με κατάληξη "min.js") και
+	// το minified file έχει τροποποιηθεί μετά το αρχικό javascript
+	// file, τότε φορτώνεται το minified javascript file.
 
 	static public function script($script) {
 		if (preg_match("@\.js$@", $script))
@@ -722,14 +746,17 @@ abstract class kalosi {
 }
 
 class kalosiXristis {
-	public $login;
-	public $onoma;
-	public $egrafi;
-	public $kodikos;
-	public $anenergos;
-	public $info;
+	public $login = NULL;
+	public $onoma = NULL;
+	public $egrafi = NULL;
+	public $kodikos = NULL;
+	public $anenergos = NULL;
+	public $info = NULL;
 
-	public function __construct($data) {
+	public function __construct($data = NULL) {
+		if (!isset($data))
+		return;
+
 		foreach ($data as $key => $val)
 		$this->$key = $val;
 	}
@@ -743,10 +770,46 @@ class kalosiXristis {
 		$row = kalosi::fetch_row($result);
 
 		if (!$row)
-		return (new kalosiXristis());
+		return false;
 
 		$result->close();
-		return $row;
+
+		$this->onoma = $row->onoma;
+		$this->egrafi = $row->egrafi;
+		$this->anenergos = $row->anenergos;
+		$this->info = $row->info;
+		unset($this->kodikos);
+
+		return true;
+	}
+
+	public function login_set($login = NULL) {
+		$this->login = isset($login) ? $login : NULL;
+		return $this;
+	}
+
+	public function egrafi_set($egrafi = NULL) {
+		$this->egrafi = isset($egrafi) ? $egrafi : NULL;
+		return $this;
+	}
+
+	public function anenergos_set($anenergos = NULL) {
+		$this->anenergos = isset($anenergos) ? $anenergos : NULL;
+		return $this;
+	}
+
+	public function info_set($info = NULL) {
+		$this->info = isset($info) ? $info : NULL;
+		return $this;
+	}
+
+	public function kodikos_set($kodikos = NULL) {
+		$this->kodikos = isset($kodikos) ? $kodikos : NULL;
+		return $this;
+	}
+
+	public function test() {
+		var_dump($this);
 	}
 }
 

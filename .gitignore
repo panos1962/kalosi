@@ -3,7 +3,11 @@
 /local/*
 !/local/README.txt
 
+/www/local/*
+!/www/local/README.txt
+
 # Exclude temporary and compiler generated files
 
 *~
 *.sw?
+*.min.js

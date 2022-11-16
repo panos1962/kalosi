@@ -1,3 +1,3 @@
-"use strict";
-
-var kalosi = {};
+$(document).ready(function() {
+	console.log('Hello!');
+});
