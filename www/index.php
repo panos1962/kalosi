@@ -29,6 +29,7 @@ class Xristis extends kalosiXristis {
 
 kalosi::
 init("../local/conf.php")::
+session_start()::
 database()::
 header_html()::
 head_section("kalosi!")::

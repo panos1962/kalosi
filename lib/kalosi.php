@@ -124,17 +124,35 @@ class kalosi {
 
 		require($cfile);
 
+		// Όπως έχουμε ήδη αναφέρει, το configuration υλοποιείται με
+		// ένα associative array το οποίο τοποθετούμε στην property
+		// "conf" του singleton "kalosi". Σ' αυτό το σημείο ελέγχουμε
+		// αν όντως μέσα από το configuration file -το οποίο είναι ένα
+		// PHP code snippet- έχει τεθεί η εν λόγω property.
+
 		if (!isset(self::$conf))
 		self::fatal("init: invalid configuration file");
 
+		// Στο σημείο αυτό έχουμε διαπιστώσει ότι έχει τεθεί η property
+		// "conf". Τώρα πρέπει να ελέγξουμε αν όντως αυτή που έχουμε
+		// θέσει ως τιμή στην εν λόγω property, είναι array.
+
 		if (!is_array(self::$conf))
 		self::fatal("init: configuration syntax error");
+
+		// Έχουμε διαπιστώσει ότι η property "conf" είναι ένα array.
+		// Το συγκεκριμένο array είναι associative (key/value pairs)
+		// και μεταξύ των στοιχείων του θα πρέπει οπωσδήποτε να
+		// υπάρχουν κάποιες συγκεκριμένες παράμετροι. Αν κάποια από
+		// αυτές τις (υποχρεωτικές) παραμέτρους δεν έχει τεθεί, τότε
+		// διακόπτουμε τη λειτουργία του προγράμματος.
 
 		foreach ([
 			"kalosidir",
 			"kalosiwww",
 			"appdir",
 			"wwwdir",
+			"www",
 		] as $param) {
 			if (self::no_conf($param))
 			self::fatal("init: missing '" . $param . "' parameter");
@@ -147,7 +165,17 @@ class kalosi {
 		fixconfdir("wwwdir")::
 		fixconfdir("www");
 
-		// By default χρησιμοποιούμε session σε όλες τα PHP προγράμματα
+		// Κάποιες από τις παραπάνω παραμέτρους πρέπει να είναι URLs.
+
+		foreach ([
+			"kalosiwww",
+			"www",
+		] as $param) {
+			if (self::no_url(self::$conf[$param]))
+			self::fatal("init: " . $param . ": " . self::$conf[$param] . ": invalid URL");
+		}
+
+		// By default χρησιμοποιούμε session σε όλα τα PHP προγράμματα
 		// της εφαρμογής. Αν δεν επιθυμούμε να χρησιμοποιούμε session
 		// by default, τότε πρέπει να θέσουμε την configuration
 		// parameter "session" σε false· σ' αυτήν την περίπτωση
@@ -165,9 +193,29 @@ class kalosi {
 		return __CLASS__;
 	}
 
+	// Ακολουθούν τα σχετικά με την ενεργοποίηση του session. By default
+	// το session ενεργοποιείται αυτόματα μέσω της function "init" της
+	// παρούσης, δηλαδή αμέσως μετά την συμπερίληψη της βιβλιοθήκης
+	// "kalosi". Αν έχουμε δηλώσει ότι δεν επιθυμούμε ενεργοποίηση του
+	// session by default, αλλά θέλουμε κατ' εξαίρεση σε κάποιο PHP
+	// πρόγραμμα ενεργοποίηση του session, τότε το ενεργοποιούμε αμέσως
+	// μετά την συμπερίληψη της βιβλιοθήκης "kalosi", π.χ.:
+	//
+	//	require("../lib/kalosi.php);
+	//	kalosi::session_start();
+
 	static $session = false;
 
+	// Ακολουθεί function με την οποία ενεργοποείται το session. Καλό
+	// είναι να ενεργοποιείται το session με αυτήν την function και
+	// όχι με τις native PHP functions, καθώς η συγκεκριμένη function
+	// «μαρκάρει» ότι έχει ενεργοποιηθεί το session θέτοντας την
+	// property "session" σε true.
+
 	static public function session_start() {
+		// Αν έχει ήδη ενεργοποιηθεί το session, δεν προχωρούμε
+		// παρακάτω.
+
 		if (self::$session)
 		return __CLASS__;
 
@@ -182,32 +230,31 @@ class kalosi {
 		return __CLASS__;
 	}
 
-	static private function fixconfdir($idx) {
-		if (array_key_exists($idx, self::$conf))
-		self::$conf[$idx] = preg_replace("@/+$@", "", self::$conf[$idx]);
+	// Η private function "fixconfdir" δέχεται ένα configuration tag
+	// που αναφέρεται σε path ή σε URL και αφαιρεί τυχόν slash που ίσως
+	// υπάρχει στο τέλος. Με αυτόν τον τρόπο γνωρίζουμε ότι σε paths ή
+	// σε URLs «προσθέτω» πάντα παρεμβάλλοντας ένα slash.
 
+	static private function fixconfdir($idx) {
+		if (self::no_conf($idx, self::$conf))
+		return __CLASS__;
+
+		self::$conf[$idx] = preg_replace("@/+$@", "", self::$conf[$idx]);
 		return __CLASS__;
 	}
+
+	// Η function "is_conf" δέχεται ένα configuration tag και ελέγχει αν
+	// έχει καθοριστεί αντίστοιχη παράμετρος στο configuration.
 
 	static public function is_conf($idx) {
 		return array_key_exists($idx, self::$conf);
 	}
 
+	// Η function "no_conf" δέχεται ένα configuration tag και ελέγχει αν
+	// δεν έχει καθοριστεί αντίστοιχη παράμετρος στο configuration.
+
 	static public function no_conf($idx) {
 		return !self::is_conf($idx);
-	}
-
-	// Η function "kalosiwww" δέχεται ως παράμετρο ένα pathname και
-	// επιστρέφει το πλήρες url με βάση την παράμετρο "kalosiwww" του
-	// configuration.
-
-	static public function kalosiwww($s) {
-		$t = self::$conf["kalosiwww"];
-
-		if (substr($s, 0, 1) !== "/")
-		$t .= "/";
-
-		return ($t .= $s);
 	}
 
 	// Η function "atexit" θα κληθεί στο τέλος όλων των PHP προγραμμάτων
@@ -227,7 +274,7 @@ class kalosi {
 
 	static public function database() {
 		if (isset(self::$db))
-		return __CLASS__;
+		self::fatal("database: already called");
 
 		if (!isset(self::$conf))
 		self::fatal("database: must call init function first");
@@ -562,8 +609,8 @@ class kalosi {
 	// Η function "css" δέχεται ως παράμετρο το όνομα ενός CSS file
 	// (stylesheet) στο directory της σελίδας από την οποία καλείται
 	// και το φορτώνει στην εν λόγω σελίδα. Αν αντί για όνομα αρχείου
-	// περάσουμε κάποιο url, τότε φορτώνεται το CSS file που δείχνει
-	// το συγκεκριμένο url.
+	// περάσουμε κάποιο URL, τότε φορτώνεται το CSS file που δείχνει
+	// το συγκεκριμένο URL.
 
 	static public function css($css) {
 		if (!preg_match("@\.css$@", $css))
@@ -590,8 +637,8 @@ class kalosi {
 	// Η function "script" δέχεται ως παράμετρο το όνομα ενός javascript
 	// file στο directory της σελίδας από την οποία καλείται και το
 	// φορτώνει στην εν λόγω σελίδα. Αν αντί για όνομα αρχείου περάσουμε
-	// κάποιο url, τότε φορτώνεται το javascript file που δείχνει το
-	// συγκεκριμένο url.
+	// κάποιο URL, τότε φορτώνεται το javascript file που δείχνει το
+	// συγκεκριμένο URL.
 	// Όταν η παράμετρος αφορά τοπικό javascript file, τότε ελέγχεται
 	// αν υπάρχει αντίστοιχο minified file (με κατάληξη "min.js") και
 	// το minified file έχει τροποποιηθεί μετά το αρχικό javascript
@@ -707,6 +754,19 @@ class kalosi {
 
 ///////////////////////////////////////////////////////////////////////////////@
 
+	// Η function "kalosiwww" δέχεται ως παράμετρο ένα pathname και
+	// επιστρέφει το πλήρες URL με βάση την παράμετρο "kalosiwww" του
+	// configuration.
+
+	static public function kalosiwww($s) {
+		$t = self::$conf["kalosiwww"];
+
+		if (substr($s, 0, 1) !== "/")
+		$t .= "/";
+
+		return ($t .= $s);
+	}
+
 	// Η function "appdir" δέχεται ως παράμετρο ένα pathname και επιστρέφει
 	// το πλήρες pathname με βάση την παράμετρο "appdir" του configuration.
 
@@ -732,7 +792,7 @@ class kalosi {
 	}
 
 	// Η function "www" δέχεται ως παράμετρο ένα pathname και επιστρέφει
-	// το πλήρες url με βάση την παράμετρο "www" του configuration.
+	// το πλήρες URL με βάση την παράμετρο "www" του configuration.
 
 	static public function www($s) {
 		if (self::no_conf("www"))
@@ -744,6 +804,14 @@ class kalosi {
 		$t .= "/";
 
 		return ($t .= $s);
+	}
+
+	static public function is_url($url) {
+		return preg_match("/^http(s)?:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*(:[0-9]+)?(\/.*)?$/i", $url);
+	}
+
+	static public function no_url($url) {
+		return !self::is_url($url);
 	}
 
 	static public function fatal($msg) {
