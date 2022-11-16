@@ -22,7 +22,7 @@
 // είναι το singleton "kalosi" το οποίο περιλαμβάνει ως static μεθόδους όλες
 // τις functions της βιβλιοθήκης.
 
-abstract class kalosi {
+class kalosi {
 	// Για τη λειτουργία της βιβλιοθήκης, είναι απαραίτητο να υπάρχει
 	// configuration file της μορφής:
 	//
@@ -113,6 +113,12 @@ abstract class kalosi {
 		if (!isset($cfile))
 		self::fatal("init: missing configuration file");
 
+		if (!is_string($cfile))
+		self::fatal("init: invalid configuration file name");
+
+		if (($cfile = trim($cfile)) === "")
+		self::fatal("init: invalid configuration file name");
+
 		if (!is_readable($cfile))
 		self::fatal("init: " . $cfile . ": cannot read file");
 
@@ -121,7 +127,7 @@ abstract class kalosi {
 		if (!isset(self::$conf))
 		self::fatal("init: invalid configuration file");
 
-		if (!isset(self::$conf))
+		if (!is_array(self::$conf))
 		self::fatal("init: configuration syntax error");
 
 		foreach ([
@@ -149,7 +155,7 @@ abstract class kalosi {
 		// προγράμματα εκκινώντας με "kalosi::session_start()" αμέσως
 		// μετά την συμπερίληψη της βιβλιοθήκης "kalosi".
 
-		if (!array_key_exists("session", self::$conf))
+		if (self::no_conf("session"))
 		self::$conf["session"] = true;
 
 		if (self::$conf["session"])
@@ -168,10 +174,10 @@ abstract class kalosi {
 		self::$session = true;
 
 		if (!session_start())
-		kalosi::fatal("session_start: failed");
+		self::fatal("session_start: failed");
 
 		if (!setcookie(session_name(), session_id(), time() + (3600 * 24 * 7), "/"))
-		kalosi::fatal("setcookie: failed");
+		self::fatal("setcookie: failed");
 
 		return __CLASS__;
 	}

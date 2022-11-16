@@ -34,14 +34,17 @@ header_html()::
 head_section("kalosi!")::
 jQuery()::
 favicon("kalosi.png")::
-head_close();
-
-kalosi::body_section();
+head_close()::
+body_section();
 
 $query = "SELECT * FROM `xristis`";
 $result = kalosi::query($query);
 
 while ($row = kalosi::fetch_row($result))
 (new Xristis($row))->html();
+
+kalosi::
+body_close()::
+html_close();
 
 ?>
