@@ -29,7 +29,6 @@ class Xristis extends kalosiXristis {
 
 kalosi::
 init("../local/conf.php")::
-session_start()::
 database()::
 header_html()::
 head_section("kalosi!")::
@@ -43,6 +42,8 @@ $result = kalosi::query($query);
 
 while ($row = kalosi::fetch_row($result))
 (new Xristis($row))->html();
+
+var_dump($_SESSION);
 
 kalosi::
 body_close()::

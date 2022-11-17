@@ -11,6 +11,13 @@ kalosi::$conf = [
 	"www" => "http://localhost/sinergio",
 	"title" => "Συνεργείο",
 
+	/*
+	Αν δεν επιθυμούμε ενεργοποίηση του session by default, τότε
+	προσθέτουμε την παράμετρο "session" με τιμή false:
+
+	"session" => false,
+	*/
+
 	"dbhost" => "localhost",
 	"dbuser" => "sinergio",
 	"dbpass" => "xxx",
