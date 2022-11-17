@@ -262,6 +262,9 @@ class kalosi {
 	// ίσως δεν μεριμνήσαμε ή δεν προλάβαμε να εκτελέσουμε.
 
 	static public function atexit() {
+		if (isset(self::$db))
+		self::$db->close();
+
 		if (self::$selida_state)
 		self::html_close();
 
@@ -312,7 +315,7 @@ class kalosi {
 
 	static public function query($query = "") {
 		if (!isset(self::$db))
-		self::database();
+		self::fatal("query: database not open");
 
 		$result = self::$db->query($query);
 
@@ -323,7 +326,7 @@ class kalosi {
 	}
 
 	static public function fetch_row($result, $mode = MYSQLI_ASSOC) {
-		$row = $result->fetch_object();
+		$row = $result->fetch_array($mode);
 
 		switch ($row) {
 		case null:
