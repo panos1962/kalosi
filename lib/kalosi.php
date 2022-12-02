@@ -400,6 +400,47 @@ class kalosi {
 <!DOCTYPE html>
 <html>
 <head>
+<script>
+"use strict";
+var PHP = {};
+<?php
+		if (isset($_SESSION) && is_array($_SESSION)) {
+?>
+PHP._SESSION = <?php print self::jsonstr($_SESSION); ?>;
+<?php
+		}
+
+		if (isset($_GET) && is_array($_GET)) {
+?>
+PHP._GET = <?php print self::jsonstr($_GET); ?>;
+<?php
+		}
+
+		if (isset($_PUT) && is_array($_PUT)) {
+?>
+PHP._PUT = <?php print self::jsonstr($_PUT); ?>;
+<?php
+		}
+
+		if (isset($_REQUEST) && is_array($_REQUEST)) {
+?>
+PHP._REQUEST = <?php print self::jsonstr($_REQUEST); ?>;
+<?php
+		}
+?>
+var kalosi = {};
+kalosi.conf = {
+<?php
+		foreach ([
+			"kalosiwww",
+			"www",
+		] as $val) {
+			printf("\t%s: %s,\n", self::jsonstr($val),
+				self::jsonstr(self::$conf[$val]));
+		}
+?>
+};
+</script>
 <?php
 
 		self::$selida_state = 'head';
@@ -412,6 +453,8 @@ class kalosi {
 
 		if ((!isset(self::$favicon)) && self::is_conf("favicon"))
 		self::favicon(self::$conf["favicon"]);
+
+		self::script_tag(self::kalosiwww("lib/kalosi.js"));
 
 		// Αν υπάρχει PHP πρόγραμμα με όνομα "kalosi.php" στο
 		// directory "lib" κάτω από το directory βάσης της εφαρμογής,
@@ -452,7 +495,7 @@ class kalosi {
 		$file = self::wwwdir("lib/kalosi.js");
 
 		if (is_readable($file))
-		script(self::www("lib/kalosi"));
+		self::script(self::www("lib/kalosi"));
 
 		self::
 		check_for_default_css()::
@@ -752,7 +795,11 @@ class kalosi {
 	}
 
 	static public function jsonstr($s) {
-		return self::$db->json_encode($s);
+		return json_encode($s,
+			JSON_PRETTY_PRINT |
+			JSON_UNESCAPED_UNICODE |
+			JSON_UNESCAPED_SLASHES
+		);
 	}
 
 ///////////////////////////////////////////////////////////////////////////////@
